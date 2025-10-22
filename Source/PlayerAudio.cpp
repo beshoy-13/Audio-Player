@@ -74,3 +74,18 @@ bool PlayerAudio::isPlaying() const
     return transportSource.isPlaying();
 }
 
+//Mute
+void PlayerAudio::toggleMute()
+{
+    if (isMuted)
+    {
+        transportSource.setGain(1.0f); // رجع الصوت
+        isMuted = false;
+    }
+    else
+    {
+        transportSource.setGain(0.0f); // كتم الصوت
+        isMuted = true;
+    }
+}
+
