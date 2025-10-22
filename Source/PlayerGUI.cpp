@@ -115,6 +115,14 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         double len = audio.getLengthInSeconds();
         if (len > 0.1) audio.setPosition(len - 0.1);
     }
+
+    //Mute
+    else if (button == &muteButton)
+    {
+        playerAudio.toggleMute();
+        muteButton.setButtonText(playerAudio.isMuted ? "Unmute" : "Mute");
+    }
+
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
