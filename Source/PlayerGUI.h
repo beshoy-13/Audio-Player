@@ -24,6 +24,8 @@ private:
     juce::DrawableButton playPauseButton{"playpause", juce::DrawableButton::ImageFitted};
     juce::DrawableButton startButton  {"start", juce::DrawableButton::ImageFitted};
     juce::DrawableButton endButton    {"end", juce::DrawableButton::ImageFitted};
+    juce::TextButton muteButton { "Mute" };
+
 
     juce::Slider volumeSlider;
     juce::Label metadataLabel;
