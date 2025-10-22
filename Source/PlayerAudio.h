@@ -19,6 +19,10 @@ public:
     double getLengthInSeconds() const;
     bool isPlaying() const;
 
+    // Mute
+    void toggleMute();  
+    bool isMuted = false; 
+
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
