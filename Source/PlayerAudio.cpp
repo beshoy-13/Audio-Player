@@ -1,4 +1,4 @@
-#include "PlayerAudio.h"
+﻿#include "PlayerAudio.h"
 
 PlayerAudio::PlayerAudio()
 {
@@ -79,13 +79,31 @@ void PlayerAudio::toggleMute()
 {
     if (isMuted)
     {
-        transportSource.setGain(1.0f); // رجع الصوت
+        transportSource.setGain(1.0f); 
         isMuted = false;
     }
     else
     {
-        transportSource.setGain(0.0f); // كتم الصوت
+        transportSource.setGain(0.0f);
         isMuted = true;
     }
 }
+void PlayerAudio::jumpForward(double seconds)
+{
+    double newPosition = transportSource.getCurrentPosition() + seconds;
 
+    if (newPosition < transportSource.getLengthInSeconds())
+        transportSource.setPosition(newPosition);
+    else
+        transportSource.stop();
+}
+
+void PlayerAudio::jumpBackward(double seconds)
+{
+    double newPosition = transportSource.getCurrentPosition() - seconds;
+
+    if (newPosition > 0.0)
+        transportSource.setPosition(newPosition);
+    else
+        transportSource.setPosition(0.0);
+}

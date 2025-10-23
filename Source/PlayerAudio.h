@@ -18,15 +18,18 @@ public:
     void setGain(float g);
     double getLengthInSeconds() const;
     bool isPlaying() const;
-
+    void jumpForward(double seconds);
+    void jumpBackward(double seconds);
     // Mute
-    void toggleMute();  
-    bool isMuted = false; 
+    void toggleMute();
+    bool isMuted = false;
 
+    
 private:
     juce::AudioFormatManager formatManager;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
     float gain = 0.8f;
-};
+    bool isMutd = false;
 
+};

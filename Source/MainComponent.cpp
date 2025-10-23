@@ -1,4 +1,4 @@
-﻿#include "MainComponent.h"
+#include "MainComponent.h"
 
 MainComponent::MainComponent() : gui(audio)
 {
@@ -26,4 +26,3 @@ void MainComponent::resized()
 {
     gui.setBounds(getLocalBounds());
 }
-
