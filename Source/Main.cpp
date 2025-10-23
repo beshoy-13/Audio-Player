@@ -16,7 +16,7 @@ private:
         {
             setUsingNativeTitleBar(true);
             setContentOwned(new MainComponent(), true);
-            centreWithSize(550, 200);
+            centreWithSize(1000, 500);
             setVisible(true);
         }
         void closeButtonPressed() override { juce::JUCEApplication::getInstance()->systemRequestedQuit(); }
@@ -24,4 +24,3 @@ private:
     std::unique_ptr<MainWindow> mainWindow;
 };
 START_JUCE_APPLICATION(SimpleAudioPlayer)
-
