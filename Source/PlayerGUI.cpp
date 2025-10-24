@@ -1,66 +1,31 @@
 #include "PlayerGUI.h"
-#include "BinaryData.h"
+
+juce::File PlayerGUI::getSVGFile(const juce::String& name)
+{
+    juce::File execDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
+    for (int i = 0; i < 5; ++i)
+    {
+        juce::File svgDir = execDir.getSiblingFile("Source").getChildFile("svgs");
+        if (svgDir.exists()) return svgDir.getChildFile(name + ".svg");
+        execDir = execDir.getParentDirectory();
+    }
+    return juce::File();
+}
 
 PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
 {
-    std::unique_ptr<juce::XmlElement> xml;
-    int svgDataSize = 0;
-    const char* svgData = nullptr;
-
-    svgData = BinaryData::getNamedResource("upload_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) loadIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load upload from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("restart_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) restartIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load restart from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("stop_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) stopIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load stop from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("start_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) playIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load start from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("pause_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) pauseIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load pause from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("startsong_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) startIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load startsong from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("endsong_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) endIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load endsong from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("mute_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) muteIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load mute from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("unmute_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) unmuteIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load unmute from Binary Data!");
-
-    svgData = BinaryData::getNamedResource("replay_10_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) backwardIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load backward icon!");
-
-    svgData = BinaryData::getNamedResource("forward_10_svg", svgDataSize);
-    xml = juce::parseXML(svgData);
-    if (xml != nullptr) forwardIcon = juce::Drawable::createFromSVG(*xml);
-    else juce::Logger::writeToLog("ERROR: Failed to load forward icon!");
+    loadIcon     = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("upload")));
+    restartIcon  = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("restart")));
+    stopIcon     = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("stop")));
+    playIcon     = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("start")));
+    pauseIcon    = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("pause")));
+    startIcon    = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("startsong")));
+    endIcon      = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("endsong")));
+    loopIcon     = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("loop")));
+    muteIcon     = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("mute")));
+    unmuteIcon   = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("unmute")));
+    backwardIcon = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("backward")));
+    forwardIcon  = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("forward")));
 
     safeSetButtonImage(loadButton, loadIcon, "Load");
     safeSetButtonImage(restartButton, restartIcon, "Restart");
@@ -68,24 +33,12 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
     safeSetButtonImage(playPauseButton, playIcon, "Play");
     safeSetButtonImage(startButton, startIcon, "Start");
     safeSetButtonImage(endButton, endIcon, "End");
+    safeSetButtonImage(loopButton, loopIcon, "Loop");
     safeSetButtonImage(muteButton, muteIcon, "Mute");
-    safeSetButtonImage(backwardButton, backwardIcon, "⏪ 10s");
-    safeSetButtonImage(forwardButton, forwardIcon, "⏩ 10s");
+    safeSetButtonImage(backwardButton, backwardIcon, "backward 5s");
+    safeSetButtonImage(forwardButton, forwardIcon, "forward 5s");
 
-    juce::Button* allButtons[] =
-    {
-        &loadButton,
-        &restartButton,
-        &stopButton,
-        &playPauseButton,
-        &startButton,
-        &endButton,
-        &muteButton,
-        &backwardButton,
-        &forwardButton
-    };
-
-    for (auto* b : allButtons)
+    for (auto* b : { &loadButton, &restartButton, &stopButton, &playPauseButton, &startButton, &endButton, &loopButton, &muteButton, &backwardButton, &forwardButton })
     {
         addAndMakeVisible(b);
         b->addListener(this);
@@ -111,8 +64,7 @@ void PlayerGUI::paint(juce::Graphics& g)
 void PlayerGUI::resized()
 {
     auto area = getLocalBounds().reduced(12);
-    auto top = area.removeFromTop(100);
-
+    auto top = area.removeFromTop(70);
     int btnW = 80, gap = 8;
 
     loadButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
@@ -121,10 +73,11 @@ void PlayerGUI::resized()
     playPauseButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
     startButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
     endButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
+    loopButton.setBounds(top.removeFromLeft(btnW));
     muteButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-
     backwardButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
     forwardButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
+
 
     area.removeFromTop(8);
     volumeSlider.setBounds(area.removeFromTop(28));
@@ -153,7 +106,7 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     {
         if (audio.isPlaying())
         {
-            audio.stop();
+            audio.pause();
             isPlaying = false;
             if (playIcon) playPauseButton.setImages(playIcon.get()); else playPauseButton.setButtonText("Play");
         }
@@ -170,36 +123,35 @@ void PlayerGUI::buttonClicked(juce::Button* button)
         isPlaying = false;
         if (playIcon) playPauseButton.setImages(playIcon.get()); else playPauseButton.setButtonText("Play");
     }
-    else if (button == &restartButton || button == &startButton) audio.setPosition(0.0);
+    else if (button == &restartButton || button == &startButton)
+        audio.setPosition(0.0);
     else if (button == &endButton)
     {
         double len = audio.getLengthInSeconds();
         if (len > 0.1) audio.setPosition(len - 0.1);
     }
-
-    else if (button == &backwardButton)
+    else if (button == &loopButton)
     {
-        audio.jumpBackward(10.0);
+        bool newLoopState = !audio.isLooping();
+        audio.setLooping(newLoopState);
+        loopButton.setAlpha(newLoopState ? 1.0f : 0.5f);   
     }
-    else if (button == &forwardButton)
-    {
-        audio.jumpForward(10.0);
-    }
-
     else if (button == &muteButton)
     {
         audio.toggleMute();
-
         if (audio.isMuted)
-        {
             safeSetButtonImage(muteButton, unmuteIcon, "Unmute");
-        }
         else
-        {
             safeSetButtonImage(muteButton, muteIcon, "Mute");
-        }
     }
-
+    else if (button == &backwardButton)
+    {
+        audio.jumpBackward(5.0);
+    }
+    else if (button == &forwardButton)
+    {
+        audio.jumpForward(5.0);
+    }
 }
 
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
@@ -213,3 +165,4 @@ void PlayerGUI::safeSetButtonImage(juce::DrawableButton& btn, std::unique_ptr<ju
     if (drawable) { btn.setImages(drawable.get()); btn.setButtonText(""); }
     else btn.setButtonText(fallbackText);
 }
+

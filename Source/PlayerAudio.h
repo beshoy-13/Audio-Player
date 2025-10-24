@@ -1,35 +1,38 @@
 #pragma once
 #include <JuceHeader.h>
 
-class PlayerAudio
+class PlayerAudio : public juce::AudioSource
 {
 public:
     PlayerAudio();
-    ~PlayerAudio();
+    ~PlayerAudio() override;
 
-    void prepareToPlay(int samplesPerBlockExpected, double sampleRate);
-    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill);
-    void releaseResources();
+    void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
+    void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
+    void releaseResources() override;
 
     void loadFile(const juce::File& file);
     void play();
+    void pause();
     void stop();
     void setPosition(double pos);
-    void setGain(float g);
     double getLengthInSeconds() const;
+    void setGain(float g);
     bool isPlaying() const;
-    void jumpForward(double seconds);
-    void jumpBackward(double seconds);
-    // Mute
+    void setLooping(bool shouldLoop);
+    bool isLooping() const;
     void toggleMute();
     bool isMuted = false;
+    void jumpForward(double seconds);
+    void jumpBackward(double seconds);
 
-    
+
 private:
     juce::AudioFormatManager formatManager;
-    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     juce::AudioTransportSource transportSource;
-    float gain = 0.8f;
-    bool isMutd = false;
+    std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
 
+    float gain = 1.0f;
+    bool looping = false;
 };
+
