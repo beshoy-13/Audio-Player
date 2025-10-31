@@ -1,5 +1,13 @@
 #include "PlayerGUI.h"
 
+static juce::String formatDuration(double seconds)
+{
+    int totalSecs = static_cast<int>(seconds);
+    int mins = totalSecs / 60;
+    int secs = totalSecs % 60;
+    return juce::String(mins) + ":" + juce::String(secs).paddedLeft('0', 2);
+}
+
 juce::File PlayerGUI::getSVGFile(const juce::String& name)
 {
     juce::File execDir = juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory();
@@ -43,14 +51,18 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
         addAndMakeVisible(b);
         b->addListener(this);
     }
-
+    
+    volumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
+    volumeSlider.setColour(juce::Slider::trackColourId, juce::Colour::fromString("#FFFEE715"));
+    volumeSlider.setColour(juce::Slider::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
+    volumeSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colour::fromString("#FFFEE715"));
     volumeSlider.setRange(0.0, 1.0, 0.01);
     volumeSlider.setValue(0.8, juce::dontSendNotification);
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
 
     metadataLabel.setJustificationType(juce::Justification::centredLeft);
-    metadataLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    metadataLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(metadataLabel);
 }
 
@@ -58,7 +70,7 @@ PlayerGUI::~PlayerGUI() {}
 
 void PlayerGUI::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colours::darkslategrey);
+    g.fillAll(juce::Colour::fromString("#FF101820"));
 }
 
 void PlayerGUI::resized()
@@ -96,6 +108,9 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 if (file.existsAsFile())
                 {
                     audio.loadFile(file);
+
+                    updateMetadata(audio.getTitle(), audio.getArtist(), audio.getAlbum(), audio.getDuration());
+
                     audio.play();
                     isPlaying = true;
                     if (pauseIcon) playPauseButton.setImages(pauseIcon.get()); else playPauseButton.setButtonText("Pause");
@@ -157,6 +172,23 @@ void PlayerGUI::buttonClicked(juce::Button* button)
 void PlayerGUI::sliderValueChanged(juce::Slider* slider)
 {
     if (slider == &volumeSlider) audio.setGain((float)volumeSlider.getValue());
+}
+
+void PlayerGUI::updateMetadata(const juce::String& title,
+                               const juce::String& artist,
+                               const juce::String& album,
+                               double duration)
+{
+    juce::String safeTitle  = title.isNotEmpty()  ? title  : "Unknown Title";
+    juce::String safeArtist = artist.isNotEmpty() ? artist : "Unknown Artist";
+    juce::String safeAlbum  = album.isNotEmpty()  ? album  : "Unknown Album";
+
+    juce::String formattedDuration = (duration > 0) ? formatDuration(duration) : "0:00";
+
+    juce::String info;
+//    info << "Title: " << safeTitle << "   |   Artist: " << safeArtist << "   |   Album: " << safeAlbum << "   |   Duration: " << formattedDuration;
+    info << safeTitle << " - " << safeArtist << " [" << formattedDuration << "]";
+    metadataLabel.setText(info, juce::dontSendNotification);
 }
 
 void PlayerGUI::safeSetButtonImage(juce::DrawableButton& btn, std::unique_ptr<juce::Drawable>& drawable, const juce::String& fallbackText)

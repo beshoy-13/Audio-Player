@@ -25,6 +25,11 @@ public:
     bool isMuted = false;
     void jumpForward(double seconds);
     void jumpBackward(double seconds);
+    juce::String getTitle() const { return title; }
+    juce::String getArtist() const { return artist; }
+    juce::String getAlbum() const { return album; }
+    double getDuration() const { return duration; }
+
 
 
 private:
@@ -34,5 +39,11 @@ private:
 
     float gain = 1.0f;
     bool looping = false;
+
+    juce::String title;
+    juce::String artist;
+    juce::String album;
+    double duration = 0.0;
+
 };
 

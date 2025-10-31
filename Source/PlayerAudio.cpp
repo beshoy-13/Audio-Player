@@ -1,4 +1,6 @@
 #include "PlayerAudio.h"
+#include <taglib/fileref.h>
+#include <taglib/tag.h>
 
 PlayerAudio::PlayerAudio()
 {
@@ -47,6 +49,10 @@ void PlayerAudio::loadFile(const juce::File& file)
     if (reader == nullptr)
         return;
 
+    title = reader->metadataValues.getValue("title", file.getFileNameWithoutExtension());
+    artist = reader->metadataValues.getValue("artist", "Unknown Artist");
+    duration = reader->lengthInSamples / reader->sampleRate;
+
     transportSource.stop();
     transportSource.setSource(nullptr);
 
@@ -55,6 +61,31 @@ void PlayerAudio::loadFile(const juce::File& file)
     transportSource.setSource(readerSource.get(), 0, nullptr, reader->sampleRate);
     transportSource.setGain(gain);
     transportSource.setPosition(0.0);
+    duration = transportSource.getLengthInSeconds();
+
+    if (artist == "Unknown Artist")
+    {
+        juce::ChildProcess ffprobe;
+        juce::StringArray args;
+        args.add("ffprobe");
+        args.add("-v");
+        args.add("error");
+        args.add("-show_entries");
+        args.add("format_tags=artist,title");
+        args.add("-of");
+        args.add("default=nw=1:nk=1");
+        args.add(file.getFullPathName());
+        if (ffprobe.start(args))
+        {
+            juce::StringArray lines;
+            lines.addLines(ffprobe.readAllProcessOutput().trim());
+            if (lines.size() >= 2)
+            {
+                artist = lines[0];
+                title = lines[1];
+            }
+        }
+    }
 }
 
 void PlayerAudio::play()

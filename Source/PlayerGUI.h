@@ -14,6 +14,8 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
+    void updateMetadata(const juce::String& title, const juce::String& artist, const juce::String& album, double duration);
+
 
 private:
     PlayerAudio& audio;
@@ -31,6 +33,11 @@ private:
 
     juce::Slider volumeSlider;
     juce::Label metadataLabel;
+    juce::Label titleLabel;
+    juce::Label artistLabel;
+    juce::Label albumLabel;
+    juce::Label durationLabel;
+
     std::unique_ptr<juce::Drawable> loadIcon, restartIcon, stopIcon, playIcon, pauseIcon, startIcon, endIcon, loopIcon, muteIcon, unmuteIcon, backwardIcon, forwardIcon;
     std::unique_ptr<juce::FileChooser> fileChooser;
     bool isPlaying = false;
