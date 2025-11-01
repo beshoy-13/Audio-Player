@@ -10,21 +10,22 @@ class PlayerGUI : public juce::Component,
 public:
     PlayerGUI(PlayerAudio& audioRef);
     ~PlayerGUI() override;
-
+    
     void paint(juce::Graphics& g) override;
     void resized() override;
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void updateMetadata(const juce::String& title, const juce::String& artist, const juce::String& album, double duration);
+    void updateMixerMetadata(const juce::String& title, const juce::String& artist, const juce::String& album, double duration);
     void refreshPlaylist();
-
+    
     int getNumRows() override;
     void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
     void listBoxItemDoubleClicked(int rowNumber, const juce::MouseEvent&) override;
 
 private:
     PlayerAudio& audio;
-
+    
     juce::DrawableButton loadButton{"load", juce::DrawableButton::ImageFitted};
     juce::DrawableButton restartButton{"restart", juce::DrawableButton::ImageFitted};
     juce::DrawableButton stopButton{"stop", juce::DrawableButton::ImageFitted};
@@ -36,29 +37,35 @@ private:
     juce::DrawableButton forwardButton{"forward", juce::DrawableButton::ImageFitted};
     juce::DrawableButton backwardButton{"backward", juce::DrawableButton::ImageFitted};
     juce::DrawableButton playlistButton{"playlist", juce::DrawableButton::ImageFitted};
-
+    juce::DrawableButton mixerButton{"mixer", juce::DrawableButton::ImageFitted};
+    
     juce::Slider volumeSlider;
+    juce::Slider mixerVolumeSlider;
     juce::Label metadataLabel;
+    juce::Label mixerMetadataLabel;
     juce::Label titleLabel;
     juce::Label artistLabel;
     juce::Label albumLabel;
     juce::Label durationLabel;
-
+    
     juce::ListBox playlistBox;
     juce::Array<juce::File> playlistFiles;
     bool playlistVisible = false;
-
+    
     std::unique_ptr<juce::Drawable> loadIcon, restartIcon, stopIcon,
         playIcon, pauseIcon, startIcon, endIcon, loopIcon, muteIcon,
-        unmuteIcon, backwardIcon, forwardIcon, playlistIcon;
-
+        unmuteIcon, backwardIcon, forwardIcon, playlistIcon, mixerIcon;
+    
     std::unique_ptr<juce::FileChooser> fileChooser;
+    
     bool isPlaying = false;
     bool isLooping = false;
-
+    int mixerFileCount = 0;
+    juce::File pendingMixerFile1;
+    juce::File pendingMixerFile2;
+    
     juce::File getSVGFile(const juce::String& name);
     void safeSetButtonImage(juce::DrawableButton& btn, std::unique_ptr<juce::Drawable>& drawable, const juce::String& fallbackText);
-
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
-
