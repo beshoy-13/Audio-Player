@@ -4,7 +4,8 @@
 
 class PlayerGUI : public juce::Component,
                   public juce::Button::Listener,
-                  public juce::Slider::Listener
+                  public juce::Slider::Listener,
+                  public juce::ListBoxModel
 {
 public:
     PlayerGUI(PlayerAudio& audioRef);
@@ -15,21 +16,26 @@ public:
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
     void updateMetadata(const juce::String& title, const juce::String& artist, const juce::String& album, double duration);
+    void refreshPlaylist();
 
+    int getNumRows() override;
+    void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
+    void listBoxItemDoubleClicked(int rowNumber, const juce::MouseEvent&) override;
 
 private:
     PlayerAudio& audio;
 
-    juce::DrawableButton loadButton   {"load", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton loadButton{"load", juce::DrawableButton::ImageFitted};
     juce::DrawableButton restartButton{"restart", juce::DrawableButton::ImageFitted};
-    juce::DrawableButton stopButton   {"stop", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton stopButton{"stop", juce::DrawableButton::ImageFitted};
     juce::DrawableButton playPauseButton{"playpause", juce::DrawableButton::ImageFitted};
-    juce::DrawableButton startButton  {"start", juce::DrawableButton::ImageFitted};
-    juce::DrawableButton endButton    {"end", juce::DrawableButton::ImageFitted};
-    juce::DrawableButton loopButton   {"loop", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton startButton{"start", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton endButton{"end", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton loopButton{"loop", juce::DrawableButton::ImageFitted};
     juce::DrawableButton muteButton{"mute", juce::DrawableButton::ImageFitted};
     juce::DrawableButton forwardButton{"forward", juce::DrawableButton::ImageFitted};
     juce::DrawableButton backwardButton{"backward", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton playlistButton{"playlist", juce::DrawableButton::ImageFitted};
 
     juce::Slider volumeSlider;
     juce::Label metadataLabel;
@@ -38,7 +44,14 @@ private:
     juce::Label albumLabel;
     juce::Label durationLabel;
 
-    std::unique_ptr<juce::Drawable> loadIcon, restartIcon, stopIcon, playIcon, pauseIcon, startIcon, endIcon, loopIcon, muteIcon, unmuteIcon, backwardIcon, forwardIcon;
+    juce::ListBox playlistBox;
+    juce::Array<juce::File> playlistFiles;
+    bool playlistVisible = false;
+
+    std::unique_ptr<juce::Drawable> loadIcon, restartIcon, stopIcon,
+        playIcon, pauseIcon, startIcon, endIcon, loopIcon, muteIcon,
+        unmuteIcon, backwardIcon, forwardIcon, playlistIcon;
+
     std::unique_ptr<juce::FileChooser> fileChooser;
     bool isPlaying = false;
     bool isLooping = false;
