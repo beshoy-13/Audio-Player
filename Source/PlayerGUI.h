@@ -5,7 +5,8 @@
 class PlayerGUI : public juce::Component,
                   public juce::Button::Listener,
                   public juce::Slider::Listener,
-                  public juce::ListBoxModel
+                  public juce::ListBoxModel,
+                  public juce::Timer
 {
 public:
     PlayerGUI(PlayerAudio& audioRef);
@@ -15,6 +16,7 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* button) override;
     void sliderValueChanged(juce::Slider* slider) override;
+    void timerCallback() override;
     void updateMetadata(const juce::String& title, const juce::String& artist, const juce::String& album, double duration);
     void updateMixerMetadata(const juce::String& title, const juce::String& artist, const juce::String& album, double duration);
     void refreshPlaylist();
@@ -41,12 +43,16 @@ private:
     
     juce::Slider volumeSlider;
     juce::Slider mixerVolumeSlider;
+    juce::Slider positionSlider;
+    
     juce::Label metadataLabel;
     juce::Label mixerMetadataLabel;
     juce::Label titleLabel;
     juce::Label artistLabel;
     juce::Label albumLabel;
     juce::Label durationLabel;
+    juce::Label currentTimeLabel;
+    juce::Label totalTimeLabel;
     
     juce::ListBox playlistBox;
     juce::Array<juce::File> playlistFiles;
@@ -60,12 +66,14 @@ private:
     
     bool isPlaying = false;
     bool isLooping = false;
+    bool isDraggingPosition = false;
     int mixerFileCount = 0;
     juce::File pendingMixerFile1;
     juce::File pendingMixerFile2;
     
     juce::File getSVGFile(const juce::String& name);
     void safeSetButtonImage(juce::DrawableButton& btn, std::unique_ptr<juce::Drawable>& drawable, const juce::String& fallbackText);
+    juce::String formatTime(double seconds);
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };

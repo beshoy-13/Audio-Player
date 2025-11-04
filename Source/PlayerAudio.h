@@ -39,10 +39,11 @@ public:
     double getMixerDuration() const { return mixerDuration; }
     
     bool hasMixerTrack() const { return mixerReaderSource.get() != nullptr; }
+    
+    juce::AudioTransportSource transportSource;
 
 private:
     juce::AudioFormatManager formatManager;
-    juce::AudioTransportSource transportSource;
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource;
     
     juce::AudioTransportSource mixerTransportSource;

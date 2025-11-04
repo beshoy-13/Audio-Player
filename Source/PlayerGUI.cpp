@@ -20,6 +20,14 @@ juce::File PlayerGUI::getSVGFile(const juce::String& name)
     return juce::File();
 }
 
+juce::String PlayerGUI::formatTime(double seconds)
+{
+    int totalSecs = static_cast<int>(seconds);
+    int mins = totalSecs / 60;
+    int secs = totalSecs % 60;
+    return juce::String(mins) + ":" + juce::String(secs).paddedLeft('0', 2);
+}
+
 PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
 {
     loadIcon     = juce::Drawable::createFromSVG(*juce::parseXML(getSVGFile("upload")));
@@ -76,6 +84,19 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
     mixerVolumeSlider.setVisible(false);
     addAndMakeVisible(mixerVolumeSlider);
     
+    positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    positionSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
+    positionSlider.setColour(juce::Slider::trackColourId, juce::Colour::fromString("#FFFEE715"));
+    positionSlider.setColour(juce::Slider::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
+    positionSlider.setRange(0.0, 1.0, 0.001);
+    positionSlider.setValue(0.0, juce::dontSendNotification);
+    positionSlider.addListener(this);
+    addAndMakeVisible(positionSlider);
+    
+    positionSlider.onDragStart = [this]() { isDraggingPosition = true; };
+    positionSlider.onDragEnd = [this]() { isDraggingPosition = false; };
+    
     metadataLabel.setJustificationType(juce::Justification::centredLeft);
     metadataLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(metadataLabel);
@@ -84,6 +105,16 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
     mixerMetadataLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     mixerMetadataLabel.setVisible(false);
     addAndMakeVisible(mixerMetadataLabel);
+    
+    currentTimeLabel.setJustificationType(juce::Justification::centredLeft);
+    currentTimeLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    currentTimeLabel.setText("0:00", juce::dontSendNotification);
+    addAndMakeVisible(currentTimeLabel);
+    
+    totalTimeLabel.setJustificationType(juce::Justification::centredRight);
+    totalTimeLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    totalTimeLabel.setText("0:00", juce::dontSendNotification);
+    addAndMakeVisible(totalTimeLabel);
     
     for (auto* l : { &titleLabel, &artistLabel, &albumLabel, &durationLabel })
     {
@@ -98,9 +129,14 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef)
     playlistBox.setOutlineThickness(1);
     addAndMakeVisible(playlistBox);
     playlistBox.setVisible(false);
+    
+    startTimer(100);
 }
 
-PlayerGUI::~PlayerGUI() {}
+PlayerGUI::~PlayerGUI() 
+{
+    stopTimer();
+}
 
 void PlayerGUI::paint(juce::Graphics& g)
 {
@@ -129,6 +165,14 @@ void PlayerGUI::resized()
     mixerButton.setBounds(top.removeFromLeft(btnW));
     
     area.removeFromTop(10);
+    
+    auto positionArea = area.removeFromTop(50);
+    auto timeLabelsArea = positionArea.removeFromTop(20);
+    currentTimeLabel.setBounds(timeLabelsArea.removeFromLeft(50));
+    totalTimeLabel.setBounds(timeLabelsArea.removeFromRight(50));
+    positionSlider.setBounds(positionArea);
+    
+    area.removeFromTop(10);
     volumeSlider.setBounds(area.removeFromTop(40));
     area.removeFromTop(10);
     
@@ -150,6 +194,22 @@ void PlayerGUI::resized()
         playlistBox.setBounds(0, 0, 0, 0);
 }
 
+void PlayerGUI::timerCallback()
+{
+    if (!isDraggingPosition)
+    {
+        double currentPos = audio.transportSource.getCurrentPosition();
+        double totalLength = audio.getLengthInSeconds();
+        
+        if (totalLength > 0.0)
+        {
+            positionSlider.setValue(currentPos / totalLength, juce::dontSendNotification);
+            currentTimeLabel.setText(formatTime(currentPos), juce::dontSendNotification);
+            totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+        }
+    }
+}
+
 void PlayerGUI::buttonClicked(juce::Button* button)
 {
     if (button == &loadButton)
@@ -163,6 +223,9 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 {
                     audio.loadFile(file);
                     updateMetadata(audio.getTitle(), audio.getArtist(), audio.getAlbum(), audio.getDuration());
+                    double totalLength = audio.getLengthInSeconds();
+                    positionSlider.setRange(0.0, totalLength, 0.001);
+                    totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
                     audio.play();
                     isPlaying = true;
                     if (pauseIcon) playPauseButton.setImages(pauseIcon.get()); else playPauseButton.setButtonText("Pause");
@@ -188,14 +251,25 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     {
         audio.stop();
         isPlaying = false;
+        positionSlider.setValue(0.0, juce::dontSendNotification);
+        currentTimeLabel.setText("0:00", juce::dontSendNotification);
         if (playIcon) playPauseButton.setImages(playIcon.get()); else playPauseButton.setButtonText("Play");
     }
     else if (button == &restartButton || button == &startButton)
+    {
         audio.setPosition(0.0);
+        positionSlider.setValue(0.0, juce::dontSendNotification);
+        currentTimeLabel.setText("0:00", juce::dontSendNotification);
+    }
     else if (button == &endButton)
     {
         double len = audio.getLengthInSeconds();
-        if (len > 0.1) audio.setPosition(len - 0.1);
+        if (len > 0.1) 
+        {
+            audio.setPosition(len - 0.1);
+            positionSlider.setValue(len - 0.1, juce::dontSendNotification);
+            currentTimeLabel.setText(formatTime(len - 0.1), juce::dontSendNotification);
+        }
     }
     else if (button == &loopButton)
     {
@@ -267,6 +341,10 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                                 updateMetadata(audio.getTitle(), audio.getArtist(), audio.getAlbum(), audio.getDuration());
                                 updateMixerMetadata(audio.getMixerTitle(), audio.getMixerArtist(), audio.getMixerAlbum(), audio.getMixerDuration());
                                 
+                                double totalLength = audio.getLengthInSeconds();
+                                positionSlider.setRange(0.0, totalLength, 0.001);
+                                totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+                                
                                 mixerVolumeSlider.setVisible(true);
                                 mixerMetadataLabel.setVisible(true);
                                 
@@ -290,6 +368,15 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         audio.setGain((float)volumeSlider.getValue());
     else if (slider == &mixerVolumeSlider)
         audio.setMixerGain((float)mixerVolumeSlider.getValue());
+    else if (slider == &positionSlider)
+    {
+        if (isDraggingPosition)
+        {
+            double newPosition = positionSlider.getValue();
+            audio.setPosition(newPosition);
+            currentTimeLabel.setText(formatTime(newPosition), juce::dontSendNotification);
+        }
+    }
 }
 
 void PlayerGUI::updateMetadata(const juce::String& title,
@@ -354,6 +441,9 @@ void PlayerGUI::listBoxItemDoubleClicked(int rowNumber, const juce::MouseEvent&)
         if (file.existsAsFile())
         {
             audio.loadFile(file);
+            double totalLength = audio.getLengthInSeconds();
+            positionSlider.setRange(0.0, totalLength, 0.001);
+            totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
             audio.play();
             isPlaying = true;
             if (pauseIcon) playPauseButton.setImages(pauseIcon.get());
