@@ -20,6 +20,7 @@ public:
     double getLengthInSeconds() const;
     void setGain(float g);
     void setMixerGain(float g);
+    void setSpeed(double speed);
     bool isPlaying() const;
     void setLooping(bool shouldLoop);
     bool isLooping() const;
@@ -27,6 +28,11 @@ public:
     bool isMuted = false;
     void jumpForward(double seconds);
     void jumpBackward(double seconds);
+    
+    void setABLooping(bool enabled, double startTime, double endTime);
+    bool isABLooping() const { return abLoopEnabled; }
+    double getABLoopStart() const { return abLoopStart; }
+    double getABLoopEnd() const { return abLoopEnd; }
     
     juce::String getTitle() const { return title; }
     juce::String getArtist() const { return artist; }
@@ -40,7 +46,14 @@ public:
     
     bool hasMixerTrack() const { return mixerReaderSource.get() != nullptr; }
     
+    juce::AudioFormatReader* getCurrentReader() const { return currentReader; }
+    
     juce::AudioTransportSource transportSource;
+
+    juce::AudioFormatManager& getFormatManager() { return formatManager; }
+
+    juce::File getCurrentFile() const { return currentFile; }
+    double getCurrentPosition() const { return transportSource.getCurrentPosition(); }
 
 private:
     juce::AudioFormatManager formatManager;
@@ -50,10 +63,17 @@ private:
     std::unique_ptr<juce::AudioFormatReaderSource> mixerReaderSource;
     
     juce::MixerAudioSource mixer;
+    juce::ResamplingAudioSource resamplingSource;
+    juce::ResamplingAudioSource mixerResamplingSource;
     
     float gain = 1.0f;
     float mixerGain = 1.0f;
     bool looping = false;
+    double playbackSpeed = 1.0;
+    
+    bool abLoopEnabled = false;
+    double abLoopStart = 0.0;
+    double abLoopEnd = 0.0;
     
     juce::String title;
     juce::String artist;
@@ -64,4 +84,9 @@ private:
     juce::String mixerArtist;
     juce::String mixerAlbum;
     double mixerDuration = 0.0;
+
+    juce::File currentFile;
+    
+    juce::AudioFormatReader* currentReader = nullptr;
 };
+

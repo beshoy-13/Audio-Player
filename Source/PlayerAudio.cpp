@@ -1,12 +1,10 @@
 #include "PlayerAudio.h"
-#include <taglib/fileref.h>
-#include <taglib/tag.h>
 
-PlayerAudio::PlayerAudio()
+PlayerAudio::PlayerAudio() : resamplingSource(&transportSource, false), mixerResamplingSource(&mixerTransportSource, false)
 {
     formatManager.registerBasicFormats();
-    mixer.addInputSource(&transportSource, false);
-    mixer.addInputSource(&mixerTransportSource, false);
+    mixer.addInputSource(&resamplingSource, false);
+    mixer.addInputSource(&mixerResamplingSource, false);
 }
 
 PlayerAudio::~PlayerAudio()
@@ -22,6 +20,8 @@ void PlayerAudio::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
     transportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     mixerTransportSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    resamplingSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
+    mixerResamplingSource.prepareToPlay(samplesPerBlockExpected, sampleRate);
     mixer.prepareToPlay(samplesPerBlockExpected, sampleRate);
 }
 
@@ -32,13 +32,19 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
         bufferToFill.clearActiveBufferRegion();
         return;
     }
-    
+
     mixer.getNextAudioBlock(bufferToFill);
-    
+
     double currentPos = transportSource.getCurrentPosition();
     double length = getLengthInSeconds();
-    
-    if (looping && length > 0.0 && currentPos >= length - 0.05)
+
+    if (abLoopEnabled && currentPos >= abLoopEnd)
+    {
+        transportSource.setPosition(abLoopStart);
+        if (mixerReaderSource.get() != nullptr)
+            mixerTransportSource.setPosition(abLoopStart);
+    }
+    else if (looping && !abLoopEnabled && length > 0.0 && currentPos >= length - 0.05)
     {
         transportSource.setPosition(0.0);
         transportSource.start();
@@ -53,6 +59,8 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
 void PlayerAudio::releaseResources()
 {
     mixer.releaseResources();
+    resamplingSource.releaseResources();
+    mixerResamplingSource.releaseResources();
     transportSource.releaseResources();
     mixerTransportSource.releaseResources();
 }
@@ -62,11 +70,13 @@ void PlayerAudio::loadFile(const juce::File& file)
     auto* reader = formatManager.createReaderFor(file);
     if (reader == nullptr)
         return;
-    
+
+    currentFile = file;
+    currentReader = reader;
     title = reader->metadataValues.getValue("title", file.getFileNameWithoutExtension());
     artist = reader->metadataValues.getValue("artist", "Unknown Artist");
     duration = reader->lengthInSamples / reader->sampleRate;
-    
+
     transportSource.stop();
     transportSource.setSource(nullptr);
     readerSource.reset(new juce::AudioFormatReaderSource(reader, true));
@@ -75,7 +85,9 @@ void PlayerAudio::loadFile(const juce::File& file)
     transportSource.setGain(gain);
     transportSource.setPosition(0.0);
     duration = transportSource.getLengthInSeconds();
-    
+
+    resamplingSource.setResamplingRatio(playbackSpeed);
+
     if (artist == "Unknown Artist")
     {
         juce::ChildProcess ffprobe;
@@ -88,11 +100,12 @@ void PlayerAudio::loadFile(const juce::File& file)
         args.add("-of");
         args.add("default=nw=1:nk=1");
         args.add(file.getFullPathName());
-        
+
         if (ffprobe.start(args))
         {
+            juce::String out = ffprobe.readAllProcessOutput().trim();
             juce::StringArray lines;
-            lines.addLines(ffprobe.readAllProcessOutput().trim());
+            lines.addLines(out);
             if (lines.size() >= 2)
             {
                 artist = lines[0];
@@ -107,11 +120,11 @@ void PlayerAudio::loadMixerFile(const juce::File& file)
     auto* reader = formatManager.createReaderFor(file);
     if (reader == nullptr)
         return;
-    
+
     mixerTitle = reader->metadataValues.getValue("title", file.getFileNameWithoutExtension());
     mixerArtist = reader->metadataValues.getValue("artist", "Unknown Artist");
     mixerDuration = reader->lengthInSamples / reader->sampleRate;
-    
+
     mixerTransportSource.stop();
     mixerTransportSource.setSource(nullptr);
     mixerReaderSource.reset(new juce::AudioFormatReaderSource(reader, true));
@@ -120,7 +133,9 @@ void PlayerAudio::loadMixerFile(const juce::File& file)
     mixerTransportSource.setGain(mixerGain);
     mixerTransportSource.setPosition(0.0);
     mixerDuration = mixerTransportSource.getLengthInSeconds();
-    
+
+    mixerResamplingSource.setResamplingRatio(playbackSpeed);
+
     if (mixerArtist == "Unknown Artist")
     {
         juce::ChildProcess ffprobe;
@@ -133,11 +148,12 @@ void PlayerAudio::loadMixerFile(const juce::File& file)
         args.add("-of");
         args.add("default=nw=1:nk=1");
         args.add(file.getFullPathName());
-        
+
         if (ffprobe.start(args))
         {
+            juce::String out = ffprobe.readAllProcessOutput().trim();
             juce::StringArray lines;
-            lines.addLines(ffprobe.readAllProcessOutput().trim());
+            lines.addLines(out);
             if (lines.size() >= 2)
             {
                 mixerArtist = lines[0];
@@ -196,6 +212,14 @@ void PlayerAudio::setMixerGain(float g)
     mixerGain = g;
     if (mixerReaderSource.get() != nullptr)
         mixerTransportSource.setGain(mixerGain);
+}
+
+void PlayerAudio::setSpeed(double speed)
+{
+    playbackSpeed = juce::jlimit(0.5, 2.0, speed);
+    resamplingSource.setResamplingRatio(playbackSpeed);
+    if (mixerReaderSource.get() != nullptr)
+        mixerResamplingSource.setResamplingRatio(playbackSpeed);
 }
 
 bool PlayerAudio::isPlaying() const
@@ -268,3 +292,11 @@ void PlayerAudio::jumpBackward(double seconds)
             mixerTransportSource.setPosition(0.0);
     }
 }
+
+void PlayerAudio::setABLooping(bool enabled, double startTime, double endTime)
+{
+    abLoopEnabled = enabled;
+    abLoopStart = startTime;
+    abLoopEnd = endTime;
+}
+
