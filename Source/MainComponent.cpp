@@ -3,7 +3,7 @@
 MainComponent::MainComponent() : gui(audio)
 {
     addAndMakeVisible(gui);
-    setSize(1100, 260);
+    setSize(1920, 1080);
     setAudioChannels(0, 2);
 }
 
@@ -31,4 +31,3 @@ void MainComponent::resized()
 {
     gui.setBounds(getLocalBounds());
 }
-

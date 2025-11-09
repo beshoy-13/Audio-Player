@@ -43,11 +43,11 @@ void WaveformDisplay::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour::fromString("#FF1A1F2B"));
     g.setColour(juce::Colour::fromString("#FFFEE715"));
-
+    
     if (thumbnail.getTotalLength() > 0.0)
     {
         thumbnail.drawChannels(g, getLocalBounds(), 0.0, thumbnail.getTotalLength(), 0.7f);
-
+        
         if (abMarkersEnabled)
         {
             double totalLength = thumbnail.getTotalLength();
@@ -55,16 +55,29 @@ void WaveformDisplay::paint(juce::Graphics& g)
             {
                 float startX = (float)((abStart / totalLength) * (double)getWidth());
                 float endX = (float)((abEnd / totalLength) * (double)getWidth());
-
+                
                 g.setColour(juce::Colours::red.withAlpha(0.3f));
                 g.fillRect(startX, 0.0f, endX - startX, (float)getHeight());
-
+                
                 g.setColour(juce::Colours::red);
                 g.drawLine(startX, 0, startX, getHeight(), 2.0f);
                 g.drawLine(endX, 0, endX, getHeight(), 2.0f);
             }
         }
-
+        
+        for (const auto& marker : displayMarkers)
+        {
+            double totalLength = thumbnail.getTotalLength();
+            if (totalLength > 0.0)
+            {
+                float xPos = (float)((marker.timestamp / totalLength) * (double)getWidth());
+                g.setColour(juce::Colours::green);
+                g.drawLine(xPos, 0, xPos, getHeight(), 1.5f);
+                g.setColour(juce::Colours::green.withAlpha(0.8f));
+                g.drawText(marker.label, xPos + 2, 2, 100, 20, juce::Justification::left);
+            }
+        }
+        
         double totalLength = thumbnail.getTotalLength();
         if (totalLength > 0.0)
         {
@@ -108,62 +121,65 @@ void WaveformDisplay::timerCallback()
     repaint();
 }
 
+void WaveformDisplay::setMarkers(const juce::Array<Marker>& markersToShow)
+{
+    displayMarkers = markersToShow;
+    repaint();
+}
+
 ABLoopDialog::ABLoopDialog()
 {
     setSize(400, 250);
-
+    
     titleLabel.setText("Set A-B Loop Markers", juce::dontSendNotification);
-
     juce::Font tf(juce::FontOptions().withHeight(20.0f).withStyle("Bold"));
-
     titleLabel.setFont(tf);
-
     titleLabel.setJustificationType(juce::Justification::centred);
     titleLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(titleLabel);
-
+    
     startLabel.setText("Start (A):", juce::dontSendNotification);
     startLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(startLabel);
-
+    
     endLabel.setText("End (B):", juce::dontSendNotification);
     endLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(endLabel);
-
+    
     startMinutes.setInputRestrictions(2, "0123456789");
     startMinutes.setText("0");
     startMinutes.setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
     startMinutes.setColour(juce::TextEditor::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(startMinutes);
-
+    
     startSeconds.setInputRestrictions(2, "0123456789");
     startSeconds.setText("0");
     startSeconds.setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
     startSeconds.setColour(juce::TextEditor::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(startSeconds);
-
+    
     endMinutes.setInputRestrictions(2, "0123456789");
     endMinutes.setText("0");
     endMinutes.setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
     endMinutes.setColour(juce::TextEditor::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(endMinutes);
-
+    
     endSeconds.setInputRestrictions(2, "0123456789");
     endSeconds.setText("0");
     endSeconds.setColour(juce::TextEditor::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
     endSeconds.setColour(juce::TextEditor::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(endSeconds);
-
+    
     colonLabel1.setText(":", juce::dontSendNotification);
     colonLabel1.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     colonLabel1.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(colonLabel1);
-
+    
     colonLabel2.setText(":", juce::dontSendNotification);
     colonLabel2.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     colonLabel2.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(colonLabel2);
-
+    
     confirmButton.setButtonText("Confirm");
     confirmButton.setColour(juce::TextButton::buttonColourId, juce::Colour::fromString("#FFFEE715"));
     confirmButton.setColour(juce::TextButton::textColourOffId, juce::Colour::fromString("#FF101820"));
@@ -179,7 +195,7 @@ ABLoopDialog::ABLoopDialog()
         }
     };
     addAndMakeVisible(confirmButton);
-
+    
     cancelButton.setButtonText("Cancel");
     cancelButton.setColour(juce::TextButton::buttonColourId, juce::Colours::grey);
     cancelButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
@@ -201,28 +217,28 @@ void ABLoopDialog::paint(juce::Graphics& g)
 void ABLoopDialog::resized()
 {
     auto area = getLocalBounds().reduced(20);
-
+    
     titleLabel.setBounds(area.removeFromTop(40));
     area.removeFromTop(20);
-
+    
     auto startRow = area.removeFromTop(40);
     startLabel.setBounds(startRow.removeFromLeft(100));
     startRow.removeFromLeft(10);
     startMinutes.setBounds(startRow.removeFromLeft(50));
     colonLabel1.setBounds(startRow.removeFromLeft(20));
     startSeconds.setBounds(startRow.removeFromLeft(50));
-
+    
     area.removeFromTop(20);
-
+    
     auto endRow = area.removeFromTop(40);
     endLabel.setBounds(endRow.removeFromLeft(100));
     endRow.removeFromLeft(10);
     endMinutes.setBounds(endRow.removeFromLeft(50));
     colonLabel2.setBounds(endRow.removeFromLeft(20));
     endSeconds.setBounds(endRow.removeFromLeft(50));
-
+    
     area.removeFromTop(30);
-
+    
     auto buttonRow = area.removeFromTop(40);
     confirmButton.setBounds(buttonRow.removeFromLeft(150));
     buttonRow.removeFromLeft(20);
@@ -255,8 +271,7 @@ void PlayerGUI::safeSetButtonImage(juce::DrawableButton& btn, std::unique_ptr<ju
     if (drawable) { btn.setImages(drawable.get()); btn.setButtonText(""); }
     else btn.setButtonText(fallbackText);
 }
-
-PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(audioRef)
+PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(audioRef), mixerWaveformDisplay(audioRef)
 {
     loadIcon     = createDrawableFromSVGFile(getSVGFile("upload"));
     restartIcon  = createDrawableFromSVGFile(getSVGFile("restart"));
@@ -275,7 +290,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
     abLoopIcon   = createDrawableFromSVGFile(getSVGFile("abloop"));
     saveIcon     = createDrawableFromSVGFile(getSVGFile("save"));
     markerIcon   = createDrawableFromSVGFile(getSVGFile("marker"));
-
+    
     safeSetButtonImage(loadButton, loadIcon, "Load");
     safeSetButtonImage(restartButton, restartIcon, "Restart");
     safeSetButtonImage(stopButton, stopIcon, "Stop");
@@ -291,14 +306,23 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
     safeSetButtonImage(abLoopButton, abLoopIcon, "A-B Loop");
     safeSetButtonImage(saveButton, saveIcon, "Save");
     safeSetButtonImage(markerButton, markerIcon, "Marker");
-
+    safeSetButtonImage(track1PlayPauseButton, playIcon, "Play T1");
+    safeSetButtonImage(track1MuteButton, muteIcon, "Mute T1");
+    safeSetButtonImage(track1ForwardButton, forwardIcon, "Fwd T1");
+    safeSetButtonImage(track1BackwardButton, backwardIcon, "Bwd T1");
+    safeSetButtonImage(track2PlayPauseButton, playIcon, "Play T2");
+    safeSetButtonImage(track2MuteButton, muteIcon, "Mute T2");
+    safeSetButtonImage(track2ForwardButton, forwardIcon, "Fwd T2");
+    safeSetButtonImage(track2BackwardButton, backwardIcon, "Bwd T2");
+    
     for (auto* b : { &loadButton, &restartButton, &stopButton, &playPauseButton, &startButton, &endButton,
-                     &loopButton, &muteButton, &backwardButton, &forwardButton, &playlistButton, &mixerButton, &abLoopButton, &saveButton, &markerButton })
+                 &loopButton, &muteButton, &backwardButton, &forwardButton, &playlistButton, &mixerButton,
+                 &abLoopButton, &saveButton, &markerButton, &track1PlayPauseButton, &track1MuteButton, &track1ForwardButton, &track1BackwardButton, &track2PlayPauseButton, &track2MuteButton, &track2ForwardButton, &track2BackwardButton })
     {
         addAndMakeVisible(b);
         b->addListener(this);
     }
-
+    
     volumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
     volumeSlider.setColour(juce::Slider::trackColourId, juce::Colour::fromString("#FFFEE715"));
     volumeSlider.setColour(juce::Slider::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
@@ -307,7 +331,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
     volumeSlider.setValue(0.8, juce::dontSendNotification);
     volumeSlider.addListener(this);
     addAndMakeVisible(volumeSlider);
-
+    
     mixerVolumeSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
     mixerVolumeSlider.setColour(juce::Slider::trackColourId, juce::Colour::fromString("#FFFEE715"));
     mixerVolumeSlider.setColour(juce::Slider::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
@@ -317,7 +341,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
     mixerVolumeSlider.addListener(this);
     mixerVolumeSlider.setVisible(false);
     addAndMakeVisible(mixerVolumeSlider);
-
+    
     positionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     positionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     positionSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
@@ -327,9 +351,24 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
     positionSlider.setValue(0.0, juce::dontSendNotification);
     positionSlider.addListener(this);
     addAndMakeVisible(positionSlider);
+    
     positionSlider.onDragStart = [this]() { isDraggingPosition = true; };
     positionSlider.onDragEnd = [this]() { isDraggingPosition = false; };
-
+    
+    mixerPositionSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    mixerPositionSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    mixerPositionSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerPositionSlider.setColour(juce::Slider::trackColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerPositionSlider.setColour(juce::Slider::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
+    mixerPositionSlider.setRange(0.0, 100.0, 0.001);
+    mixerPositionSlider.setValue(0.0, juce::dontSendNotification);
+    mixerPositionSlider.addListener(this);
+    mixerPositionSlider.setVisible(false);
+    addAndMakeVisible(mixerPositionSlider);
+    
+    mixerPositionSlider.onDragStart = [this]() { isDraggingMixerPosition = true; };
+    mixerPositionSlider.onDragEnd = [this]() { isDraggingMixerPosition = false; };
+    
     speedSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     speedSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
     speedSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
@@ -342,52 +381,115 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
     speedSlider.setTextValueSuffix("x");
     speedSlider.addListener(this);
     addAndMakeVisible(speedSlider);
-
+    
+    mixerSpeedSlider.setSliderStyle(juce::Slider::LinearHorizontal);
+    mixerSpeedSlider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 60, 20);
+    mixerSpeedSlider.setColour(juce::Slider::thumbColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerSpeedSlider.setColour(juce::Slider::trackColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerSpeedSlider.setColour(juce::Slider::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
+    mixerSpeedSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerSpeedSlider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
+    mixerSpeedSlider.setRange(0.5, 2.0, 0.1);
+    mixerSpeedSlider.setValue(1.0, juce::dontSendNotification);
+    mixerSpeedSlider.setTextValueSuffix("x");
+    mixerSpeedSlider.addListener(this);
+    mixerSpeedSlider.setVisible(false);
+    addAndMakeVisible(mixerSpeedSlider);
+    
     speedLabel.setText("Speed:", juce::dontSendNotification);
     speedLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     speedLabel.setJustificationType(juce::Justification::centredRight);
     addAndMakeVisible(speedLabel);
+    
+    mixerSpeedLabel.setText("Speed:", juce::dontSendNotification);
+    mixerSpeedLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerSpeedLabel.setJustificationType(juce::Justification::centredRight);
+    mixerSpeedLabel.setVisible(false);
+    addAndMakeVisible(mixerSpeedLabel);
+    
+    track1Label.setText("TRACK 1", juce::dontSendNotification);
+    track1Label.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    track1Label.setJustificationType(juce::Justification::centred);
+    juce::Font trackFont(juce::FontOptions().withHeight(24.0f).withStyle("Bold"));
+    track1Label.setFont(trackFont);
+    addAndMakeVisible(track1Label);
+    
+    track2Label.setText("TRACK 2", juce::dontSendNotification);
+    track2Label.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    track2Label.setJustificationType(juce::Justification::centred);
+    track2Label.setFont(trackFont);
+    track2Label.setVisible(false);
+    addAndMakeVisible(track2Label);
+
+    track1PlayPauseButton.setVisible(false);
+    track1MuteButton.setVisible(false);
+    track1ForwardButton.setVisible(false);
+    track1BackwardButton.setVisible(false);
+    track2PlayPauseButton.setVisible(false);
+    track2MuteButton.setVisible(false);
+    track2ForwardButton.setVisible(false);
+    track2BackwardButton.setVisible(false);
+    isTrack1Playing = false;
+    isTrack2Playing = false;
+    isTrack1Muted = false;
+    isTrack2Muted = false;
 
     metadataLabel.setJustificationType(juce::Justification::centredLeft);
     metadataLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     addAndMakeVisible(metadataLabel);
-
+    
     mixerMetadataLabel.setJustificationType(juce::Justification::centredLeft);
     mixerMetadataLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     mixerMetadataLabel.setVisible(false);
     addAndMakeVisible(mixerMetadataLabel);
-
+    
     currentTimeLabel.setJustificationType(juce::Justification::centredLeft);
     currentTimeLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     currentTimeLabel.setText("0:00", juce::dontSendNotification);
     addAndMakeVisible(currentTimeLabel);
-
+    
     totalTimeLabel.setJustificationType(juce::Justification::centredRight);
     totalTimeLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
     totalTimeLabel.setText("0:00", juce::dontSendNotification);
     addAndMakeVisible(totalTimeLabel);
-
+    
+    mixerCurrentTimeLabel.setJustificationType(juce::Justification::centredLeft);
+    mixerCurrentTimeLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerCurrentTimeLabel.setText("0:00", juce::dontSendNotification);
+    mixerCurrentTimeLabel.setVisible(false);
+    addAndMakeVisible(mixerCurrentTimeLabel);
+    
+    mixerTotalTimeLabel.setJustificationType(juce::Justification::centredRight);
+    mixerTotalTimeLabel.setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
+    mixerTotalTimeLabel.setText("0:00", juce::dontSendNotification);
+    mixerTotalTimeLabel.setVisible(false);
+    addAndMakeVisible(mixerTotalTimeLabel);
+    
     addAndMakeVisible(waveformDisplay);
-
+    addAndMakeVisible(mixerWaveformDisplay);
+    mixerWaveformDisplay.setVisible(false);
+    
     for (auto* l : { &titleLabel, &artistLabel, &albumLabel, &durationLabel })
     {
         l->setColour(juce::Label::textColourId, juce::Colour::fromString("#FFFEE715"));
         l->setJustificationType(juce::Justification::centredLeft);
         addAndMakeVisible(l);
     }
-
+    
     playlistBox.setModel(this);
     playlistBox.setColour(juce::ListBox::backgroundColourId, juce::Colour::fromString("#FF1A1F2B"));
     playlistBox.setColour(juce::ListBox::textColourId, juce::Colour::fromString("#FFFEE715"));
     playlistBox.setOutlineThickness(1);
     addAndMakeVisible(playlistBox);
     playlistBox.setVisible(false);
-
+    
     startTimer(100);
     loadSession();
-
     setWantsKeyboardFocus(true);
 
+    track1PlayPauseButton.setVisible(false);
+    track2PlayPauseButton.setVisible(false);
+    
     if (audio.getTitle().isNotEmpty())
     {
         updateMetadata(audio.getTitle(), audio.getArtist(), audio.getAlbum(), audio.getDuration());
@@ -395,7 +497,7 @@ PlayerGUI::PlayerGUI(PlayerAudio& audioRef) : audio(audioRef), waveformDisplay(a
         positionSlider.setRange(0.0, totalLength, 0.001);
         totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
     }
-
+    
     if (audio.getMixerTitle().isNotEmpty())
     {
         updateMixerMetadata(audio.getMixerTitle(), audio.getMixerArtist(), audio.getMixerAlbum(), audio.getMixerDuration());
@@ -418,64 +520,126 @@ void PlayerGUI::paint(juce::Graphics& g)
 void PlayerGUI::resized()
 {
     auto area = getLocalBounds().reduced(10);
-    int btnH = 70;
-    int btnW = 70;
-    int gap = 10;
-
-    auto top = area.removeFromTop(btnH);
-    loadButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    playPauseButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    stopButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    restartButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    startButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    endButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    loopButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    muteButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    backwardButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    forwardButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    playlistButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    mixerButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    abLoopButton.setBounds(top.removeFromLeft(btnW));
-    top.removeFromLeft(gap);
-    saveButton.setBounds(top.removeFromLeft(btnW)); top.removeFromLeft(gap);
-    markerButton.setBounds(top.removeFromLeft(btnW));
-
-    area.removeFromTop(10);
-
-    waveformDisplay.setBounds(area.removeFromTop(100));
-
-    area.removeFromTop(10);
-
-    auto positionArea = area.removeFromTop(50);
-    auto timeLabelsArea = positionArea.removeFromTop(20);
-    currentTimeLabel.setBounds(timeLabelsArea.removeFromLeft(50));
-    totalTimeLabel.setBounds(timeLabelsArea.removeFromRight(50));
-    positionSlider.setBounds(positionArea);
-
-    area.removeFromTop(10);
-
-    auto speedArea = area.removeFromTop(40);
-    speedLabel.setBounds(speedArea.removeFromLeft(60));
-    speedSlider.setBounds(speedArea);
-
-    area.removeFromTop(10);
-    volumeSlider.setBounds(area.removeFromTop(40));
-    area.removeFromTop(10);
-
-    auto metadataArea = area.removeFromTop(30);
-    metadataLabel.setBounds(metadataArea.reduced(4));
-
+    int btnH = 60;
+    int btnW = 60;
+    int gap = 8;
+    
+    auto buttonArea = area.removeFromTop(btnH);
+    int totalButtonWidth = (btnW * 15) + (gap * 14);
+    int startX = (area.getWidth() - totalButtonWidth) / 2;
+    buttonArea.removeFromLeft(startX);
+    
+    loadButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    playPauseButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    stopButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    restartButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    startButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    endButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    loopButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    muteButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    backwardButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    forwardButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    playlistButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    mixerButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    abLoopButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    saveButton.setBounds(buttonArea.removeFromLeft(btnW)); buttonArea.removeFromLeft(gap);
+    markerButton.setBounds(buttonArea.removeFromLeft(btnW));
+    
+    area.removeFromTop(20);
+    
     if (audio.hasMixerTrack())
     {
-        area.removeFromTop(10);
-        mixerVolumeSlider.setBounds(area.removeFromTop(40));
-        area.removeFromTop(10);
-        auto mixerMetadataArea = area.removeFromTop(30);
-        mixerMetadataLabel.setBounds(mixerMetadataArea.reduced(4));
-    }
+        int halfWidth = (area.getWidth() - 20) / 2;
+        
+        auto leftPanel = area.removeFromLeft(halfWidth);
+        area.removeFromLeft(20);
+        auto rightPanel = area;
+        
+        track1Label.setBounds(leftPanel.removeFromTop(30));
+        leftPanel.removeFromTop(10);
+        waveformDisplay.setBounds(leftPanel.removeFromTop(150));
+        leftPanel.removeFromTop(10);
+        auto track1ButtonRow = leftPanel.removeFromTop(40);
+        track1PlayPauseButton.setBounds(track1ButtonRow.removeFromLeft(50));
+        track1ButtonRow.removeFromLeft(5);
+        track1MuteButton.setBounds(track1ButtonRow.removeFromLeft(50));
+        track1ButtonRow.removeFromLeft(5);
+        track1BackwardButton.setBounds(track1ButtonRow.removeFromLeft(50));
+        track1ButtonRow.removeFromLeft(5);
+        track1ForwardButton.setBounds(track1ButtonRow.removeFromLeft(50));
+        leftPanel.removeFromTop(10);
 
+        auto posArea = leftPanel.removeFromTop(50);
+        auto timeLabels = posArea.removeFromTop(20);
+        currentTimeLabel.setBounds(timeLabels.removeFromLeft(50));
+        totalTimeLabel.setBounds(timeLabels.removeFromRight(50));
+        positionSlider.setBounds(posArea);
+        
+        leftPanel.removeFromTop(10);
+        auto speedArea = leftPanel.removeFromTop(30);
+        speedLabel.setBounds(speedArea.removeFromLeft(60));
+        speedSlider.setBounds(speedArea);
+        
+        leftPanel.removeFromTop(10);
+        volumeSlider.setBounds(leftPanel.removeFromTop(40));
+        leftPanel.removeFromTop(10);
+        metadataLabel.setBounds(leftPanel.removeFromTop(30));
+        
+        track2Label.setBounds(rightPanel.removeFromTop(30));
+        rightPanel.removeFromTop(10);
+        mixerWaveformDisplay.setBounds(rightPanel.removeFromTop(150));
+        rightPanel.removeFromTop(10);
+        auto track2ButtonRow = rightPanel.removeFromTop(40);
+        track2PlayPauseButton.setBounds(track2ButtonRow.removeFromLeft(50));
+        track2ButtonRow.removeFromLeft(5);
+        track2MuteButton.setBounds(track2ButtonRow.removeFromLeft(50));
+        track2ButtonRow.removeFromLeft(5);
+        track2BackwardButton.setBounds(track2ButtonRow.removeFromLeft(50));
+        track2ButtonRow.removeFromLeft(5);
+        track2ForwardButton.setBounds(track2ButtonRow.removeFromLeft(50));
+        rightPanel.removeFromTop(10); 
+        auto mixerPosArea = rightPanel.removeFromTop(50);
+        auto mixerTimeLabels = mixerPosArea.removeFromTop(20);
+        mixerCurrentTimeLabel.setBounds(mixerTimeLabels.removeFromLeft(50));
+        mixerTotalTimeLabel.setBounds(mixerTimeLabels.removeFromRight(50));
+        mixerPositionSlider.setBounds(mixerPosArea);
+        
+        rightPanel.removeFromTop(10);
+        auto mixerSpeedArea = rightPanel.removeFromTop(30);
+        mixerSpeedLabel.setBounds(mixerSpeedArea.removeFromLeft(60));
+        mixerSpeedSlider.setBounds(mixerSpeedArea);
+        
+        rightPanel.removeFromTop(10);
+        mixerVolumeSlider.setBounds(rightPanel.removeFromTop(40));
+        rightPanel.removeFromTop(10);
+        mixerMetadataLabel.setBounds(rightPanel.removeFromTop(30));
+    }
+    else
+    {
+        track1Label.setBounds(area.removeFromTop(30));
+        area.removeFromTop(10);
+        waveformDisplay.setBounds(area.removeFromTop(200));
+        area.removeFromTop(10);
+        
+        auto posArea = area.removeFromTop(50);
+        auto timeLabels = posArea.removeFromTop(20);
+        currentTimeLabel.setBounds(timeLabels.removeFromLeft(50));
+        totalTimeLabel.setBounds(timeLabels.removeFromRight(50));
+        positionSlider.setBounds(posArea);
+        
+        area.removeFromTop(10);
+        auto speedArea = area.removeFromTop(40);
+        speedLabel.setBounds(speedArea.removeFromLeft(60));
+        speedSlider.setBounds(speedArea);
+        
+        area.removeFromTop(10);
+        volumeSlider.setBounds(area.removeFromTop(40));
+        area.removeFromTop(10);
+        metadataLabel.setBounds(area.removeFromTop(30));
+    }
+    
     if (playlistVisible)
-        playlistBox.setBounds(area.removeFromBottom(180));
+        playlistBox.setBounds(area.removeFromBottom(200));
     else
         playlistBox.setBounds(0, 0, 0, 0);
 }
@@ -486,7 +650,7 @@ void PlayerGUI::timerCallback()
     {
         double currentPos = audio.transportSource.getCurrentPosition();
         double totalLength = audio.getLengthInSeconds();
-
+        
         if (totalLength > 0.0)
         {
             positionSlider.setValue(currentPos, juce::dontSendNotification);
@@ -495,8 +659,31 @@ void PlayerGUI::timerCallback()
             waveformDisplay.setCurrentPosition(currentPos);
         }
     }
+    
+    if (!isDraggingMixerPosition && audio.hasMixerTrack())
+    {
+        double mixerPos = audio.mixerTransportSource.getCurrentPosition();
+        double mixerLength = audio.getMixerLengthInSeconds();
+        
+        if (mixerLength > 0.0)
+        {
+            mixerPositionSlider.setValue(mixerPos, juce::dontSendNotification);
+            mixerCurrentTimeLabel.setText(formatTime(mixerPos), juce::dontSendNotification);
+            mixerTotalTimeLabel.setText(formatTime(mixerLength), juce::dontSendNotification);
+            mixerWaveformDisplay.setCurrentPosition(mixerPos);
+        }
+    }
+    if (audio.isPlaying())
+    {
+        double currentPos = audio.transportSource.getCurrentPosition();
+        double totalLength = audio.getLengthInSeconds();
+    
+        if (totalLength > 0.0 && currentPos >= totalLength - 0.1)
+        {
+            playNextInPlaylist();
+        }
+    }
 }
-
 void PlayerGUI::showABLoopDialog()
 {
     abDialog = std::make_unique<ABLoopDialog>();
@@ -504,23 +691,23 @@ void PlayerGUI::showABLoopDialog()
     int w = 400;
     int h = 250;
     abDialog->setBounds((getWidth() - w) / 2, (getHeight() - h) / 2, w, h);
-
+    
     abDialog->onConfirm = [this](int startMin, int startSec, int endMin, int endSec)
     {
         double startTime = startMin * 60.0 + startSec;
         double endTime = endMin * 60.0 + endSec;
-
+        
         if (startTime < endTime && endTime <= audio.getLengthInSeconds())
         {
             audio.setABLooping(true, startTime, endTime);
             waveformDisplay.setABMarkers(true, startTime, endTime);
             abLoopButton.setAlpha(1.0f);
         }
-
+        
         removeChildComponent(abDialog.get());
         abDialog.reset();
     };
-
+    
     abDialog->onCancel = [this]()
     {
         removeChildComponent(abDialog.get());
@@ -569,53 +756,72 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     else if (button == &stopButton)
     {
         audio.stop();
+        audio.clearMixerTrack();
         isPlaying = false;
-    
+        
         positionSlider.setValue(0.0, juce::dontSendNotification);
         positionSlider.setRange(0.0, 100.0, 0.001);
         currentTimeLabel.setText("0:00", juce::dontSendNotification);
         totalTimeLabel.setText("0:00", juce::dontSendNotification);
-    
+        
+        mixerPositionSlider.setValue(0.0, juce::dontSendNotification);
+        mixerCurrentTimeLabel.setText("0:00", juce::dontSendNotification);
+        mixerTotalTimeLabel.setText("0:00", juce::dontSendNotification);
+        
         volumeSlider.setValue(0.8, juce::dontSendNotification);
         mixerVolumeSlider.setValue(0.8, juce::dontSendNotification);
         speedSlider.setValue(1.0, juce::dontSendNotification);
-    
+        mixerSpeedSlider.setValue(1.0, juce::dontSendNotification);
+        
         metadataLabel.setText("", juce::dontSendNotification);
         mixerMetadataLabel.setText("", juce::dontSendNotification);
         mixerMetadataLabel.setVisible(false);
         mixerVolumeSlider.setVisible(false);
-    
+        mixerPositionSlider.setVisible(false);
+        mixerSpeedSlider.setVisible(false);
+        mixerSpeedLabel.setVisible(false);
+        mixerCurrentTimeLabel.setVisible(false);
+        mixerTotalTimeLabel.setVisible(false);
+        track2Label.setVisible(false);
+        mixerWaveformDisplay.setVisible(false);
+        track1PlayPauseButton.setVisible(false);
+        track2PlayPauseButton.setVisible(false);
+        isTrack1Playing = false;
+        isTrack2Playing = false;
+        
         waveformDisplay.loadWaveform(juce::File());
-    
+        mixerWaveformDisplay.loadWaveform(juce::File());
+        
         audio.setABLooping(false, 0.0, 0.0);
         waveformDisplay.setABMarkers(false, 0.0, 0.0);
-        abLoopButton.setAlpha(0.5f);
-    
+        
         audio.setLooping(false);
-        loopButton.setAlpha(0.5f);
-    
+        
         markers.clear();
-    
+        
         if (playIcon) playPauseButton.setImages(playIcon.get()); 
         else playPauseButton.setButtonText("Play");
-
+        
+        resized();
     }
     else if (button == &restartButton || button == &startButton)
     {
         audio.setPosition(0.0);
         positionSlider.setValue(0.0, juce::dontSendNotification);
         currentTimeLabel.setText("0:00", juce::dontSendNotification);
+        
+        if (audio.hasMixerTrack())
+        {
+            audio.setMixerPosition(0.0);
+            mixerPositionSlider.setValue(0.0, juce::dontSendNotification);
+            mixerCurrentTimeLabel.setText("0:00", juce::dontSendNotification);
+        }
     }
     else if (button == &endButton)
     {
-        double len = audio.getLengthInSeconds();
-        if (len > 0.1)
-        {
-            audio.setPosition(len - 0.1);
-            positionSlider.setValue(len - 0.1, juce::dontSendNotification);
-            currentTimeLabel.setText(formatTime(len - 0.1), juce::dontSendNotification);
-        }
+        playNextInPlaylist();
     }
+
     else if (button == &loopButton)
     {
         bool newLoopState = !audio.isLooping();
@@ -651,7 +857,6 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     {
         playlistVisible = !playlistVisible;
         playlistBox.setVisible(playlistVisible);
-
         if (playlistVisible && playlistFiles.isEmpty())
         {
             fileChooser = std::make_unique<juce::FileChooser>(
@@ -689,7 +894,6 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                 {
                     pendingMixerFile1 = file;
                     mixerFileCount++;
-
                     fileChooser = std::make_unique<juce::FileChooser>(
                         "Select second audio file for mixer...", juce::File(), "*.wav;*.mp3;*.aiff;*.flac");
                     fileChooser->launchAsync(
@@ -701,27 +905,47 @@ void PlayerGUI::buttonClicked(juce::Button* button)
                             {
                                 pendingMixerFile2 = file2;
                                 mixerFileCount++;
-
+                                
                                 audio.loadFile(pendingMixerFile1);
                                 audio.loadMixerFile(pendingMixerFile2);
-
+                                
                                 updateMetadata(audio.getTitle(), audio.getArtist(), audio.getAlbum(), audio.getDuration());
                                 updateMixerMetadata(audio.getMixerTitle(), audio.getMixerArtist(), audio.getMixerAlbum(), audio.getMixerDuration());
-
+                                
                                 double totalLength = audio.getLengthInSeconds();
                                 positionSlider.setRange(0.0, totalLength, 0.001);
                                 totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
-
+                                
+                                double mixerLength = audio.getMixerLengthInSeconds();
+                                mixerPositionSlider.setRange(0.0, mixerLength, 0.001);
+                                mixerTotalTimeLabel.setText(formatTime(mixerLength), juce::dontSendNotification);
+                                
                                 waveformDisplay.loadWaveform(pendingMixerFile1);
-
+                                mixerWaveformDisplay.loadWaveform(pendingMixerFile2);
+                                
                                 mixerVolumeSlider.setVisible(true);
                                 mixerMetadataLabel.setVisible(true);
+                                mixerPositionSlider.setVisible(true);
+                                mixerSpeedSlider.setVisible(true);
+                                mixerSpeedLabel.setVisible(true);
+                                mixerCurrentTimeLabel.setVisible(true);
+                                mixerTotalTimeLabel.setVisible(true);
+                                track2Label.setVisible(true);
+                                mixerWaveformDisplay.setVisible(true);
+                                track1PlayPauseButton.setVisible(true);
+                                track1MuteButton.setVisible(true);
+                                track1ForwardButton.setVisible(true);
+                                track1BackwardButton.setVisible(true);
+                                track2PlayPauseButton.setVisible(true);
+                                track2MuteButton.setVisible(true);
+                                track2ForwardButton.setVisible(true);
+                                track2BackwardButton.setVisible(true);
 
                                 audio.play();
                                 isPlaying = true;
                                 if (pauseIcon) playPauseButton.setImages(pauseIcon.get());
                                 else playPauseButton.setButtonText("Pause");
-
+                                
                                 resized();
                                 repaint();
                             }
@@ -736,10 +960,71 @@ void PlayerGUI::buttonClicked(juce::Button* button)
     }
     else if (button == &markerButton)
     {
-        if (markers.isEmpty())
-            addMarker();
+        showMarkersDialog();
+    }
+    else if (button == &track1PlayPauseButton)
+    {
+        if (isTrack1Playing)
+        {
+            audio.pauseTrack1();
+            isTrack1Playing = false;
+            if (playIcon) track1PlayPauseButton.setImages(playIcon.get());
+        }
         else
-            showMarkersDialog();
+        {
+            audio.playTrack1();
+            isTrack1Playing = true;
+            if (pauseIcon) track1PlayPauseButton.setImages(pauseIcon.get());
+        }
+    }
+    else if (button == &track1MuteButton)
+    {
+        audio.toggleTrack1Mute();
+        isTrack1Muted = !isTrack1Muted;
+        if (isTrack1Muted)
+            safeSetButtonImage(track1MuteButton, unmuteIcon, "Unmute T1");
+        else
+            safeSetButtonImage(track1MuteButton, muteIcon, "Mute T1");
+    }
+    else if (button == &track1ForwardButton)
+    {
+        audio.track1JumpForward(10.0);
+    }
+    else if (button == &track1BackwardButton)
+    {
+        audio.track1JumpBackward(10.0);
+    }
+    else if (button == &track2PlayPauseButton)
+    {
+        if (isTrack2Playing)
+        {
+            audio.pauseTrack2();
+            isTrack2Playing = false;
+            if (playIcon) track2PlayPauseButton.setImages(playIcon.get());
+        }
+        else
+        {
+            audio.playTrack2();
+            isTrack2Playing = true;
+            if (pauseIcon) track2PlayPauseButton.setImages(pauseIcon.get());
+        }
+    }
+    else if (button == &track2MuteButton)
+    {
+        audio.toggleTrack2Mute();
+        isTrack2Muted = !isTrack2Muted;
+        if (isTrack2Muted)
+            safeSetButtonImage(track2MuteButton, unmuteIcon, "Unmute T2");
+        else
+            safeSetButtonImage(track2MuteButton, muteIcon, "Mute T2");
+    }
+    else if (button == &track2ForwardButton)
+    {
+        audio.track2JumpForward(10.0);
+    }
+    else if (button == &track2BackwardButton)
+    {
+        audio.track2JumpBackward(10.0);
     }
 }
 
@@ -754,17 +1039,26 @@ void PlayerGUI::sliderValueChanged(juce::Slider* slider)
         if (isDraggingPosition)
         {
             double target = positionSlider.getValue();
-            double totalLength = audio.getLengthInSeconds();
-            if (totalLength > 0.0)
-            {
-                audio.setPosition(target);
-                currentTimeLabel.setText(formatTime(audio.transportSource.getCurrentPosition()), juce::dontSendNotification);
-            }
+            audio.setPosition(target);
+            currentTimeLabel.setText(formatTime(audio.transportSource.getCurrentPosition()), juce::dontSendNotification);
+        }
+    }
+    else if (slider == &mixerPositionSlider)
+    {
+        if (isDraggingMixerPosition)
+        {
+            double target = mixerPositionSlider.getValue();
+            audio.setMixerPosition(target);
+            mixerCurrentTimeLabel.setText(formatTime(audio.mixerTransportSource.getCurrentPosition()), juce::dontSendNotification);
         }
     }
     else if (slider == &speedSlider)
     {
         audio.setSpeed(speedSlider.getValue());
+    }
+    else if (slider == &mixerSpeedSlider)
+    {
+        audio.setMixerSpeed(mixerSpeedSlider.getValue());
     }
 }
 
@@ -813,6 +1107,7 @@ void PlayerGUI::listBoxItemDoubleClicked(int rowNumber, const juce::MouseEvent&)
     if (rowNumber >= 0 && rowNumber < playlistFiles.size())
     {
         auto file = playlistFiles[rowNumber];
+        currentPlaylistIndex = rowNumber;
         if (file.existsAsFile())
         {
             audio.loadFile(file);
@@ -905,6 +1200,7 @@ void PlayerGUI::loadSession()
             }
         }
     }
+    waveformDisplay.setMarkers(markers);
 }
 
 void PlayerGUI::addMarker()
@@ -918,26 +1214,20 @@ void PlayerGUI::addMarker()
     
     markers.add(marker);
     
+    waveformDisplay.setMarkers(markers);
     juce::AlertWindow::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "Marker Added", 
         "Added: " + marker.label);
 }
 
 void PlayerGUI::showMarkersDialog()
 {
-    if (markers.isEmpty())
-    {
-        juce::NativeMessageBox::showMessageBoxAsync(juce::AlertWindow::InfoIcon, "No Markers", 
-            "No markers have been added yet.");
-        return;
-    }
-    
     class MarkersListDialog : public juce::Component
     {
     public:
         MarkersListDialog(juce::Array<Marker>& markersRef, PlayerAudio& audioRef, PlayerGUI& guiRef)
             : markers(markersRef), audio(audioRef), gui(guiRef)
         {
-            setSize(400, 300);
+            setSize(400, 350);
             
             for (int i = 0; i < markers.size(); i++)
             {
@@ -947,8 +1237,6 @@ void PlayerGUI::showMarkersDialog()
                     audio.setPosition(markers[i].timestamp);
                     if (!audio.isPlaying())
                         audio.play();
-                    if (auto* parent = getParentComponent())
-                        parent->exitModalState(0);
                 };
                 addAndMakeVisible(btn);
                 markerButtons.add(btn);
@@ -960,10 +1248,24 @@ void PlayerGUI::showMarkersDialog()
                     markers.remove(i);
                     if (auto* parent = getParentComponent())
                         parent->exitModalState(0);
+                    gui.waveformDisplay.setMarkers(markers);
+                    gui.showMarkersDialog();
                 };
                 addAndMakeVisible(delBtn);
                 deleteButtons.add(delBtn);
             }
+            
+            addMarkerBtn.setButtonText("Add Marker");
+            addMarkerBtn.setColour(juce::TextButton::buttonColourId, juce::Colour::fromString("#FFFEE715"));
+            addMarkerBtn.setColour(juce::TextButton::textColourOffId, juce::Colour::fromString("#FF101820"));
+            addMarkerBtn.onClick = [this]()
+            {
+                gui.addMarker();
+                if (auto* parent = getParentComponent())
+                    parent->exitModalState(0);
+                gui.showMarkersDialog();
+            };
+            addAndMakeVisible(addMarkerBtn);
             
             closeButton.setButtonText("Close");
             closeButton.onClick = [this]()
@@ -995,7 +1297,10 @@ void PlayerGUI::showMarkersDialog()
             }
             
             area.removeFromTop(10);
-            closeButton.setBounds(area.removeFromTop(40));
+            auto buttonRow = area.removeFromTop(40);
+            addMarkerBtn.setBounds(buttonRow.removeFromLeft(150));
+            buttonRow.removeFromLeft(10);
+            closeButton.setBounds(buttonRow);
         }
         
     private:
@@ -1004,6 +1309,7 @@ void PlayerGUI::showMarkersDialog()
         PlayerGUI& gui;
         juce::OwnedArray<juce::TextButton> markerButtons;
         juce::OwnedArray<juce::TextButton> deleteButtons;
+        juce::TextButton addMarkerBtn;
         juce::TextButton closeButton;
     };
     
@@ -1087,4 +1393,31 @@ bool PlayerGUI::keyPressed(const juce::KeyPress& key)
     }
     
     return false;
+}
+
+void PlayerGUI::playNextInPlaylist()
+{
+    if (playlistFiles.isEmpty())
+        return;
+    
+    currentPlaylistIndex++;
+    if (currentPlaylistIndex >= playlistFiles.size())
+        currentPlaylistIndex = 0;
+    
+    auto file = playlistFiles[currentPlaylistIndex];
+    if (file.existsAsFile())
+    {
+        audio.loadFile(file);
+        updateMetadata(audio.getTitle(), audio.getArtist(), audio.getAlbum(), audio.getDuration());
+        double totalLength = audio.getLengthInSeconds();
+        positionSlider.setRange(0.0, totalLength, 0.001);
+        totalTimeLabel.setText(formatTime(totalLength), juce::dontSendNotification);
+        waveformDisplay.loadWaveform(file);
+        audio.play();
+        isPlaying = true;
+        if (pauseIcon) playPauseButton.setImages(pauseIcon.get());
+        else playPauseButton.setButtonText("Pause");
+        
+        playlistBox.selectRow(currentPlaylistIndex);
+    }
 }

@@ -20,7 +20,7 @@ public:
     void setABMarkers(bool enabled, double startPos, double endPos);
     void timerCallback() override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
-
+    void setMarkers(const juce::Array<Marker>& markersToShow);
     
 private:
     PlayerAudio& audio;
@@ -31,6 +31,7 @@ private:
     bool abMarkersEnabled = false;
     double abStart = 0.0;
     double abEnd = 0.0;
+    juce::Array<Marker> displayMarkers;
 };
 
 class ABLoopDialog : public juce::Component
@@ -80,14 +81,15 @@ public:
     void loadSession();
     void addMarker();
     void showMarkersDialog();
-
     bool keyPressed(const juce::KeyPress& key) override;
+    void playNextInPlaylist();
     
     int getNumRows() override;
     void paintListBoxItem(int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected) override;
     void listBoxItemDoubleClicked(int rowNumber, const juce::MouseEvent&) override;
-
-    void setFile(const juce::File& file);
+    
+    WaveformDisplay waveformDisplay;
+    WaveformDisplay mixerWaveformDisplay;
 
 private:
     PlayerAudio& audio;
@@ -107,11 +109,21 @@ private:
     juce::DrawableButton abLoopButton{"abloop", juce::DrawableButton::ImageFitted};
     juce::DrawableButton saveButton{"save", juce::DrawableButton::ImageFitted};
     juce::DrawableButton markerButton{"marker", juce::DrawableButton::ImageFitted};
-    
+    juce::DrawableButton track1PlayPauseButton{"track1play", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track1MuteButton{"track1mute", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track1ForwardButton{"track1forward", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track1BackwardButton{"track1backward", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track2PlayPauseButton{"track2play", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track2MuteButton{"track2mute", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track2ForwardButton{"track2forward", juce::DrawableButton::ImageFitted};
+    juce::DrawableButton track2BackwardButton{"track2backward", juce::DrawableButton::ImageFitted};
+
     juce::Slider volumeSlider;
     juce::Slider mixerVolumeSlider;
     juce::Slider positionSlider;
+    juce::Slider mixerPositionSlider;
     juce::Slider speedSlider;
+    juce::Slider mixerSpeedSlider;
     
     juce::Label metadataLabel;
     juce::Label mixerMetadataLabel;
@@ -121,13 +133,17 @@ private:
     juce::Label durationLabel;
     juce::Label currentTimeLabel;
     juce::Label totalTimeLabel;
+    juce::Label mixerCurrentTimeLabel;
+    juce::Label mixerTotalTimeLabel;
     juce::Label speedLabel;
-    
-    WaveformDisplay waveformDisplay{audio};
+    juce::Label mixerSpeedLabel;
+    juce::Label track1Label;
+    juce::Label track2Label;
     
     juce::ListBox playlistBox;
     juce::Array<juce::File> playlistFiles;
     bool playlistVisible = false;
+    int currentPlaylistIndex = -1;
     
     std::unique_ptr<juce::Drawable> loadIcon, restartIcon, stopIcon,
         playIcon, pauseIcon, startIcon, endIcon, loopIcon, muteIcon,
@@ -136,14 +152,20 @@ private:
     
     std::unique_ptr<juce::FileChooser> fileChooser;
     std::unique_ptr<ABLoopDialog> abDialog;
+
+    bool isTrack1Playing = false;
+    bool isTrack2Playing = false;
+    bool isTrack1Muted = false;
+    bool isTrack2Muted = false;
     
     bool isPlaying = false;
     bool isLooping = false;
     bool isDraggingPosition = false;
+    bool isDraggingMixerPosition = false;
+    juce::TextButton addMarkerButton;
     int mixerFileCount = 0;
     juce::File pendingMixerFile1;
     juce::File pendingMixerFile2;
-
     juce::Array<Marker> markers;
     std::unique_ptr<juce::Component> markersDialog;
     
@@ -153,4 +175,3 @@ private:
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlayerGUI)
 };
-

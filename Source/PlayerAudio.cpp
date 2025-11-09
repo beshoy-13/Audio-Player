@@ -32,12 +32,12 @@ void PlayerAudio::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferTo
         bufferToFill.clearActiveBufferRegion();
         return;
     }
-
+    
     mixer.getNextAudioBlock(bufferToFill);
-
+    
     double currentPos = transportSource.getCurrentPosition();
     double length = getLengthInSeconds();
-
+    
     if (abLoopEnabled && currentPos >= abLoopEnd)
     {
         transportSource.setPosition(abLoopStart);
@@ -70,13 +70,13 @@ void PlayerAudio::loadFile(const juce::File& file)
     auto* reader = formatManager.createReaderFor(file);
     if (reader == nullptr)
         return;
-
+    
     currentFile = file;
     currentReader = reader;
     title = reader->metadataValues.getValue("title", file.getFileNameWithoutExtension());
     artist = reader->metadataValues.getValue("artist", "Unknown Artist");
     duration = reader->lengthInSamples / reader->sampleRate;
-
+    
     transportSource.stop();
     transportSource.setSource(nullptr);
     readerSource.reset(new juce::AudioFormatReaderSource(reader, true));
@@ -85,9 +85,9 @@ void PlayerAudio::loadFile(const juce::File& file)
     transportSource.setGain(gain);
     transportSource.setPosition(0.0);
     duration = transportSource.getLengthInSeconds();
-
+    
     resamplingSource.setResamplingRatio(playbackSpeed);
-
+    
     if (artist == "Unknown Artist")
     {
         juce::ChildProcess ffprobe;
@@ -100,7 +100,7 @@ void PlayerAudio::loadFile(const juce::File& file)
         args.add("-of");
         args.add("default=nw=1:nk=1");
         args.add(file.getFullPathName());
-
+        
         if (ffprobe.start(args))
         {
             juce::String out = ffprobe.readAllProcessOutput().trim();
@@ -120,11 +120,12 @@ void PlayerAudio::loadMixerFile(const juce::File& file)
     auto* reader = formatManager.createReaderFor(file);
     if (reader == nullptr)
         return;
-
+    
+    mixerReader = reader;
     mixerTitle = reader->metadataValues.getValue("title", file.getFileNameWithoutExtension());
     mixerArtist = reader->metadataValues.getValue("artist", "Unknown Artist");
     mixerDuration = reader->lengthInSamples / reader->sampleRate;
-
+    
     mixerTransportSource.stop();
     mixerTransportSource.setSource(nullptr);
     mixerReaderSource.reset(new juce::AudioFormatReaderSource(reader, true));
@@ -133,9 +134,9 @@ void PlayerAudio::loadMixerFile(const juce::File& file)
     mixerTransportSource.setGain(mixerGain);
     mixerTransportSource.setPosition(0.0);
     mixerDuration = mixerTransportSource.getLengthInSeconds();
-
-    mixerResamplingSource.setResamplingRatio(playbackSpeed);
-
+    
+    mixerResamplingSource.setResamplingRatio(mixerPlaybackSpeed);
+    
     if (mixerArtist == "Unknown Artist")
     {
         juce::ChildProcess ffprobe;
@@ -148,7 +149,7 @@ void PlayerAudio::loadMixerFile(const juce::File& file)
         args.add("-of");
         args.add("default=nw=1:nk=1");
         args.add(file.getFullPathName());
-
+        
         if (ffprobe.start(args))
         {
             juce::String out = ffprobe.readAllProcessOutput().trim();
@@ -192,6 +193,10 @@ void PlayerAudio::stop()
 void PlayerAudio::setPosition(double pos)
 {
     transportSource.setPosition(pos);
+}
+
+void PlayerAudio::setMixerPosition(double pos)
+{
     if (mixerReaderSource.get() != nullptr)
         mixerTransportSource.setPosition(pos);
 }
@@ -199,6 +204,11 @@ void PlayerAudio::setPosition(double pos)
 double PlayerAudio::getLengthInSeconds() const
 {
     return transportSource.getLengthInSeconds();
+}
+
+double PlayerAudio::getMixerLengthInSeconds() const
+{
+    return mixerTransportSource.getLengthInSeconds();
 }
 
 void PlayerAudio::setGain(float g)
@@ -218,8 +228,13 @@ void PlayerAudio::setSpeed(double speed)
 {
     playbackSpeed = juce::jlimit(0.5, 2.0, speed);
     resamplingSource.setResamplingRatio(playbackSpeed);
+}
+
+void PlayerAudio::setMixerSpeed(double speed)
+{
+    mixerPlaybackSpeed = juce::jlimit(0.5, 2.0, speed);
     if (mixerReaderSource.get() != nullptr)
-        mixerResamplingSource.setResamplingRatio(playbackSpeed);
+        mixerResamplingSource.setResamplingRatio(mixerPlaybackSpeed);
 }
 
 bool PlayerAudio::isPlaying() const
@@ -300,3 +315,108 @@ void PlayerAudio::setABLooping(bool enabled, double startTime, double endTime)
     abLoopEnd = endTime;
 }
 
+void PlayerAudio::clearMixerTrack()
+{
+    mixerTransportSource.stop();
+    mixerTransportSource.setSource(nullptr);
+    mixerReaderSource.reset();
+    mixerReader = nullptr;
+    mixerTitle = "";
+    mixerArtist = "";
+    mixerAlbum = "";
+    mixerDuration = 0.0;
+}
+
+void PlayerAudio::toggleTrack1Mute()
+{
+    if (isTrack1Muted)
+    {
+        transportSource.setGain(savedTrack1Gain);
+        isTrack1Muted = false;
+    }
+    else
+    {
+        savedTrack1Gain = gain;
+        transportSource.setGain(0.0f);
+        isTrack1Muted = true;
+    }
+}
+
+void PlayerAudio::toggleTrack2Mute()
+{
+    if (mixerReaderSource.get() != nullptr)
+    {
+        if (isTrack2Muted)
+        {
+            mixerTransportSource.setGain(savedTrack2Gain);
+            isTrack2Muted = false;
+        }
+        else
+        {
+            savedTrack2Gain = mixerGain;
+            mixerTransportSource.setGain(0.0f);
+            isTrack2Muted = true;
+        }
+    }
+}
+
+void PlayerAudio::track1JumpForward(double seconds)
+{
+    double newPosition = transportSource.getCurrentPosition() + seconds;
+    if (newPosition < transportSource.getLengthInSeconds())
+        transportSource.setPosition(newPosition);
+}
+
+void PlayerAudio::track1JumpBackward(double seconds)
+{
+    double newPosition = transportSource.getCurrentPosition() - seconds;
+    if (newPosition > 0.0)
+        transportSource.setPosition(newPosition);
+    else
+        transportSource.setPosition(0.0);
+}
+
+void PlayerAudio::track2JumpForward(double seconds)
+{
+    if (mixerReaderSource.get() != nullptr)
+    {
+        double newPosition = mixerTransportSource.getCurrentPosition() + seconds;
+        if (newPosition < mixerTransportSource.getLengthInSeconds())
+            mixerTransportSource.setPosition(newPosition);
+    }
+}
+
+void PlayerAudio::track2JumpBackward(double seconds)
+{
+    if (mixerReaderSource.get() != nullptr)
+    {
+        double newPosition = mixerTransportSource.getCurrentPosition() - seconds;
+        if (newPosition > 0.0)
+            mixerTransportSource.setPosition(newPosition);
+        else
+            mixerTransportSource.setPosition(0.0);
+    }
+}
+
+void PlayerAudio::pauseTrack1()
+{
+    transportSource.stop();
+}
+
+void PlayerAudio::pauseTrack2()
+{
+    if (mixerReaderSource.get() != nullptr)
+        mixerTransportSource.stop();
+}
+
+void PlayerAudio::playTrack1()
+{
+    if (!transportSource.isPlaying())
+        transportSource.start();
+}
+
+void PlayerAudio::playTrack2()
+{
+    if (mixerReaderSource.get() != nullptr && !mixerTransportSource.isPlaying())
+        mixerTransportSource.start();
+}
