@@ -4,10 +4,25 @@
 class SimpleAudioPlayer : public juce::JUCEApplication
 {
 public:
-    const juce::String getApplicationName() override { return "Simple Audio Player"; }
-    const juce::String getApplicationVersion() override { return "1.0"; }
-    void initialise(const juce::String&) override { mainWindow = std::make_unique<MainWindow>(getApplicationName()); }
-    void shutdown() override { mainWindow = nullptr; }
+    const juce::String getApplicationName() override 
+    { 
+        return "Simple Audio Player"; 
+    }
+    
+    const juce::String getApplicationVersion() override 
+    { 
+        return "1.0"; 
+    }
+    
+    void initialise(const juce::String&) override 
+    { 
+        mainWindow = std::make_unique<MainWindow>(getApplicationName()); 
+    }
+    
+    void shutdown() override 
+    { 
+        mainWindow = nullptr; 
+    }
 
 private:
     class MainWindow : public juce::DocumentWindow
@@ -18,11 +33,21 @@ private:
         {
             setUsingNativeTitleBar(true);
             setContentOwned(new MainComponent(), true);
-            centreWithSize(1920, 1080);
+            setResizable(true, true);
+            
+            setResizeLimits(400, 300, 4096, 4096);
+            
+            centreWithSize(1050, 700);
+            
             setVisible(true);
         }
-        void closeButtonPressed() override { juce::JUCEApplication::getInstance()->systemRequestedQuit(); }
+        
+        void closeButtonPressed() override 
+        { 
+            juce::JUCEApplication::getInstance()->systemRequestedQuit(); 
+        }
     };
+    
     std::unique_ptr<MainWindow> mainWindow;
 };
 

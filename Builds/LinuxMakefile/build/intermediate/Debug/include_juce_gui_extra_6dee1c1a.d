@@ -669,13 +669,14 @@ build/intermediate/Debug/include_juce_gui_extra_6dee1c1a.o: \
  /usr/include/pango-1.0/pango/pango-version-macros.h \
  /usr/include/pango-1.0/pango/pango-features.h /usr/include/harfbuzz/hb.h \
  /usr/include/harfbuzz/hb-blob.h /usr/include/harfbuzz/hb-common.h \
- /usr/include/harfbuzz/hb-buffer.h /usr/include/harfbuzz/hb-unicode.h \
- /usr/include/harfbuzz/hb-font.h /usr/include/harfbuzz/hb-face.h \
- /usr/include/harfbuzz/hb-map.h /usr/include/harfbuzz/hb-set.h \
- /usr/include/harfbuzz/hb-draw.h /usr/include/harfbuzz/hb.h \
- /usr/include/harfbuzz/hb-paint.h /usr/include/harfbuzz/hb-deprecated.h \
- /usr/include/harfbuzz/hb-shape.h /usr/include/harfbuzz/hb-shape-plan.h \
- /usr/include/harfbuzz/hb-style.h /usr/include/harfbuzz/hb-version.h \
+ /usr/include/harfbuzz/hb-script-list.h /usr/include/harfbuzz/hb-buffer.h \
+ /usr/include/harfbuzz/hb-unicode.h /usr/include/harfbuzz/hb-font.h \
+ /usr/include/harfbuzz/hb-face.h /usr/include/harfbuzz/hb-map.h \
+ /usr/include/harfbuzz/hb-set.h /usr/include/harfbuzz/hb-draw.h \
+ /usr/include/harfbuzz/hb.h /usr/include/harfbuzz/hb-paint.h \
+ /usr/include/harfbuzz/hb-deprecated.h /usr/include/harfbuzz/hb-shape.h \
+ /usr/include/harfbuzz/hb-shape-plan.h /usr/include/harfbuzz/hb-style.h \
+ /usr/include/harfbuzz/hb-version.h \
  /usr/include/pango-1.0/pango/pango-types.h \
  /usr/include/pango-1.0/pango/pango-gravity.h \
  /usr/include/pango-1.0/pango/pango-matrix.h \
@@ -726,7 +727,6 @@ build/intermediate/Debug/include_juce_gui_extra_6dee1c1a.o: \
  /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-io.h \
  /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-loader.h \
  /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-enum-types.h \
- /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-autocleanups.h \
  /usr/include/pango-1.0/pango/pangocairo.h \
  /usr/include/gtk-3.0/gdk/gdkcursor.h \
  /usr/include/gtk-3.0/gdk/gdkdevicepad.h \
@@ -770,7 +770,6 @@ build/intermediate/Debug/include_juce_gui_extra_6dee1c1a.o: \
  /usr/include/atk-1.0/atk/atkobjectfactory.h \
  /usr/include/atk-1.0/atk/atkplug.h /usr/include/atk-1.0/atk/atkrange.h \
  /usr/include/atk-1.0/atk/atkregistry.h \
- /usr/include/atk-1.0/atk/atkobjectfactory.h \
  /usr/include/atk-1.0/atk/atkrelation.h \
  /usr/include/atk-1.0/atk/atkrelationset.h \
  /usr/include/atk-1.0/atk/atkselection.h \
